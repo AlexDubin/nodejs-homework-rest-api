@@ -2,7 +2,9 @@ const User = require("../../models/user-model/User");
 const { validateBody } = require("../../schemas/userScheme");
 const { userSignUpSchema } = require("../../schemas/userScheme");
 const bcrypt = require("bcryptjs");
-
+const { sendEmail } = require("../../helpers/index");
+const { BASE_URL } = process.env;
+const { v4: uuidv4 } = require("uuid");
 const fs = require("fs/promises");
 const path = require("node:path");
 var gravatar = require("gravatar");
@@ -14,6 +16,7 @@ signUp = async (req, res, next) => {
     const { error } = validateBody(req.body, userSignUpSchema);
     const user = await User.findOne({ email });
     const hashPassword = await bcrypt.hash(password, 10);
+    const verificationCode = uuidv4();
     let avatarURL;
 
     if (req.file) {
@@ -35,7 +38,16 @@ signUp = async (req, res, next) => {
         ...req.body,
         password: hashPassword,
         avatarURL,
+        verificationCode,
       });
+      const verifyEmail = {
+        to: email,
+        subject: "Verify email",
+        html: `<a target="_blank" href="${BASE_URL}/api/auth/verify/${verificationCode}">Click verify email</a>`,
+      };
+
+      await sendEmail.sendEmail(verifyEmail);
+
       res.status(201).json(req.body);
     }
   } catch (error) {

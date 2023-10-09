@@ -9,6 +9,10 @@ signIn = async (req, res, next) => {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
 
+    if (!user.verify) {
+      res.status(401).json({ message: "Email not verify!" });
+    }
+
     const payload = {
       id: user._id,
     };
